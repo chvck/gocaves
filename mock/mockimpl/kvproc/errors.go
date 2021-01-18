@@ -21,4 +21,5 @@ var (
 	ErrSdPathExists    = errors.New("subdocument path exists")
 	ErrSdCantInsert    = errors.New("subdocument cant insert")
 	ErrSdBadCombo      = errors.New("subdocument invalid combo")
+	ErrSdInvalidXattr  = errors.New("there is something with the syntax of the provided XATTR")
 )
