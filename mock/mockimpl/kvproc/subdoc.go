@@ -2,7 +2,9 @@ package kvproc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 
@@ -414,6 +416,10 @@ func (e SubDocGetCountExecutor) execute(val []byte, op *SubDocOp) (*SubDocResult
 		elemCount = len(typedPathData)
 	case map[string]interface{}:
 		elemCount = len(typedPathData)
+	case int64:
+		elemCount = int(typedPathData)
+	case float64:
+		elemCount = int(typedPathData)
 	default:
 		return itemErrorResult(ErrSdPathMismatch)
 	}
@@ -815,13 +821,18 @@ func (e SubDocCounterExecutor) executeXattr(op *SubDocOp) (*SubDocResult, error)
 		return itemErrorResult(err)
 	}
 
+	log.Printf("%#v\n", pathParts)
+
 	docVal, err := docValFromXattrs(e.doc.Xattrs, op.Path)
 	if err != nil {
 		return itemErrorResult(err)
 	}
 
+	log.Printf("dv %+v\n", docVal)
+
 	newVal, err := e.doCounter(docVal, op)
 	if err != nil {
+		log.Printf("err %+v\n", err)
 		return itemErrorResult(err)
 	}
 
@@ -829,6 +840,8 @@ func (e SubDocCounterExecutor) executeXattr(op *SubDocOp) (*SubDocResult, error)
 	if err != nil {
 		return itemErrorResult(err)
 	}
+
+	log.Printf("x %+v\n", e.doc.Xattrs)
 
 	return &SubDocResult{
 		Value: []byte(strconv.FormatInt(newVal, 10)),
@@ -874,7 +887,11 @@ func (e *SubDocCounterExecutor) doCounter(docVal *subDocManip, op *SubDocOp) (in
 
 	val, err := pathVal.Get()
 	if err != nil {
-		return 0, err
+		if errors.Is(err, ErrSdPathNotFound) {
+			val = float64(0)
+		} else {
+			return 0, err
+		}
 	}
 
 	floatVal, isFloat := val.(float64)
